@@ -44,7 +44,7 @@
 #OPT_BOARD := stm32f407vg_thermal_test_chip
 #OPT_BOARD := stm32f205_generic
 #OPT_BOARD := stm32f103cx_generic
-#OPT_BOARD := stm32f072rb_stm32f0discovery
+OPT_BOARD := stm32f072rb_stm32f0discovery
 #OPT_BOARD := stm32f100cx_generic
 #OPT_BOARD := stm32f303vc_stm32f3discovery
 #OPT_BOARD := stm32f100c8_vaisala_rs41
@@ -740,6 +740,7 @@ else ifeq ($(OPT_BOARD),stm32l4r9zi_sensortile)
     ARCH := cortexM4_stm32l4
 else
     $(info Error: no board specified in miosix/config/Makefile.inc)
+    $(info OPT_BOARD: $(OPT_BOARD))
     $(error Error)
 endif
 
@@ -2395,8 +2396,8 @@ else ifeq ($(ARCH),cortexM0_stm32f0)
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
-        ARCH_SRC :=                                  \
-        $(BOARD_INC)/interfaces-impl/bsp.cpp
+        ARCH_SRC := \
+            $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
         CFLAGS_BASE   += -D_BOARD_STM32F072RB_DISCO -DSTM32F072xB
@@ -2408,10 +2409,10 @@ else ifeq ($(ARCH),cortexM0_stm32f0)
         ## Select programmer command line
         ## This is the program that is invoked when the user types
         ## 'make program'
-        ## The command must provide a way to program the board, or print an
+        ## The command must provide a way to program the board, osr print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := echo 'make program not supported.'
+        PROGRAM_CMDLINE := st-flash --reset write "main.bin" 0x8000000
 
     ##-------------------------------------------------------------------------
     ## End of board list
@@ -2447,6 +2448,7 @@ else ifeq ($(ARCH),cortexM0_stm32f0)
     ARCH_SRC +=                                              \
     arch/common/core/interrupts_cortexMx.cpp                 \
     arch/common/drivers/serial_stm32.cpp                     \
+    arch/common/drivers/dac/dac.cpp                          \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
