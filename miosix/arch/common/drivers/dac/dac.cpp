@@ -27,9 +27,59 @@
 
 #include "dac.h"
 
-namespace miosix
-{
+#include <miosix.h>
 
-DACDriver::DACDriver() {}
+#ifndef V_DDA_VOLTAGE
+#error "V_DDA_VOLTAGE not defined. Pease specify the analog supply voltage."
+#endif
+
+namespace miosix {
+
+#ifdef _ARCH_CORTEXM0_STM32
+typedef Gpio<GPIOA_BASE, 4> ch1;
+typedef Gpio<GPIOA_BASE, 5> ch2;
+#endif
+
+bool DACDriver::enableChannel(int n) {
+    if (n < 1 || n > 2)
+        return false;
+
+    {
+        // Modify the gpio and clock register in a critical section just in case
+        // another thread is doing the same
+        FastInterruptDisableLock l;
+
+        if (n == 1)
+            ch1::mode(Mode::INPUT_ANALOG);
+        else
+            ch2::mode(Mode::INPUT_ANALOG);
+
+        // Enable the peripheral clock if not already done
+        if (!(RCC->APB1ENR & RCC_APB1ENR_DACEN)) {
+            RCC->APB1ENR |= RCC_APB1ENR_DACEN;
+            RCC_SYNC();
+        }
+    }
+
+    // Enable the channel
+    DAC->CR |= n == 1 ? DAC_CR_EN1 : DAC_CR_EN2;
+
+    return true;
+}
+
+bool DACDriver::setChannel(float voltage, int n) {
+    if (n < 1 || n > 2)
+        return false;
+
+    if (voltage > V_DDA_VOLTAGE)
+        voltage = V_DDA_VOLTAGE;
+
+    if (n == 1)
+        DAC->DHR12R1 = static_cast<uint16_t>(0xfff / V_DDA_VOLTAGE * voltage);
+    else
+        DAC->DHR12R2 = static_cast<uint16_t>(0xfff / V_DDA_VOLTAGE * voltage);
+
+    return true;
+}
 
 }  // namespace miosix

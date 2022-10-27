@@ -27,16 +27,29 @@
 
 #pragma once
 
-namespace miosix
-{
+namespace miosix {
 
 /**
  * Driver for the DAC peripheral in STM32F4 microcontrollers
  */
-class DACDriver
-{
+class DACDriver {
 public:
-    DACDriver();
+    /**
+     * @brief Enables one channel of the DAC.
+     *
+     * @param n Channel number, must be either 1 or 2.
+     * @return True if the channel was enabled.
+     */
+    bool enableChannel(int n);
+
+    /**
+     * @brief Set the channel output voltage
+     *
+     * @param voltage On most boards the output is between 0V and 3V
+     * @param n Channel number, must be either 1 or 2.
+     * @return True if the output voltage was changed.
+     */
+    bool setChannel(float voltage, int n);
 };
 
 }  // namespace miosix

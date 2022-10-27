@@ -53,6 +53,9 @@ const bool defaultSerialFlowctrl=false;
 //#define SERIAL_2_DMA //Serial 2 is not used, so not enabling DMA
 //#define SERIAL_3_DMA //Serial 3 is not used, so not enabling DMA
 
+/// Analog supply voltage for ADC, DAC, Reset blocks, RCs and PLL
+#define V_DDA_VOLTAGE 3.0f
+
 /**
  * \}
  */
