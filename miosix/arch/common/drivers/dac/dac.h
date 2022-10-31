@@ -27,6 +27,8 @@
 
 #pragma once
 
+#include <interfaces/arch_registers.h>
+
 namespace miosix {
 
 /**
@@ -34,22 +36,59 @@ namespace miosix {
  */
 class DACDriver {
 public:
+    enum class TriggerSource : uint32_t {
+        TIM6_TRGO = 0,
+        TIM3_TRGO = DAC_CR_TSEL1_0,
+        TIM7_TRGO = DAC_CR_TSEL1_1,
+        TIM15_TRGO = DAC_CR_TSEL1_1 | DAC_CR_TSEL1_0,
+        TIM2_TRGO = DAC_CR_TSEL1_2,
+        EXTI_line_9 = DAC_CR_TSEL1_2 | DAC_CR_TSEL1_1,
+        SWTRIG = DAC_CR_TSEL1
+    };
+
     /**
      * @brief Enables one channel of the DAC.
      *
-     * @param n Channel number, must be either 1 or 2.
+     * @param channel Channel number, must be either 1 or 2.
      * @return True if the channel was enabled.
      */
-    bool enableChannel(int n);
+    bool enableChannel(int channel);
+
+    /**
+     * @brief Disables one channel of the DAC.
+     *
+     * @param channel Channel number, must be either 1 or 2.
+     * @return True if the channel was disabled.
+     */
+    bool disableChannel(int channel);
 
     /**
      * @brief Set the channel output voltage
      *
      * @param voltage On most boards the output is between 0V and 3V
-     * @param n Channel number, must be either 1 or 2.
+     * @param channel Channel number, must be either 1 or 2.
      * @return True if the output voltage was changed.
      */
-    bool setChannel(float voltage, int n);
+    bool setChannel(int channel, float voltage);
+
+    bool enableTrigger(int channel,
+                       TriggerSource source = TriggerSource::SWTRIG);
+
+    bool disableTrigger(int channel);
+
+    bool dispatchSoftwareTrigger(int channel);
+
+    bool enableNoiseGeneration(int channel,
+                               TriggerSource source = TriggerSource::SWTRIG);
+
+    bool enableTriangularWaveGeneration(
+        int channel, TriggerSource source = TriggerSource::SWTRIG);
+
+    bool disableWaveGenerator(int channel);
+
+    bool setWaveGeneratorMask(int channel, uint8_t bits);
+
+    bool centerWaveOutput(int channel, float voltage);
 };
 
 }  // namespace miosix
