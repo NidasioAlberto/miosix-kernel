@@ -41,7 +41,7 @@
 
 namespace miosix {
 
-#ifdef _ARCH_CORTEXM0_STM32
+#ifdef _ARCH_CORTEXM0_STM32F0
 typedef Gpio<GPIOA_BASE, 4> ch1;
 typedef Gpio<GPIOA_BASE, 5> ch2;
 #endif
