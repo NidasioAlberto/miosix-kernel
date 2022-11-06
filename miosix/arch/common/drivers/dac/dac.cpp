@@ -77,7 +77,7 @@ bool DACDriver::disableChannel(int channel) {
     if (channel < 1 || channel > 2)
         return false;
 
-    // Leave the gpio pins in anolog configuration to consume less power.
+    // Leave the gpio pins in analog configuration to consume less power.
     // Check AN4899 chapter 7
 
     // Disable the DAC clock if both channels are disabled
@@ -111,6 +111,30 @@ bool DACDriver::setChannel(int channel, float voltage) {
     return true;
 }
 
+bool DACDriver::enableBuffer(int channel) {
+    if (channel < 1 || channel > 2)
+        return false;
+
+    if (channel == 1)
+        DAC->CR |= DAC_CR_BOFF1;
+    else
+        DAC->CR |= DAC_CR_BOFF2;
+
+    return true;
+}
+
+bool DACDriver::disableBuffer(int channel) {
+    if (channel < 1 || channel > 2)
+        return false;
+
+    if (channel == 1)
+        DAC->CR &= ~DAC_CR_BOFF1;
+    else
+        DAC->CR &= ~DAC_CR_BOFF2;
+
+    return true;
+}
+
 bool DACDriver::enableTrigger(int channel, TriggerSource source) {
     if (channel < 1 || channel > 2)
         return false;
@@ -119,14 +143,21 @@ bool DACDriver::enableTrigger(int channel, TriggerSource source) {
     // configuring
     FastInterruptDisableLock l;
 
+    // We need to:
+    // - First disable the trigger before changing the TSEL bits
+    // - Change the trigger source (TSEL bits)
+    // - Enable the trigger source
+
     if (channel == 1) {
-        DAC->CR |= DAC_CR_TEN1;                    // Trigger enable
-        DAC->CR &= ~DAC_CR_TSEL1;                  // Clear trigger source
-        DAC->CR |= static_cast<uint32_t>(source);  // Set trigger source
+        DAC->CR &= ~DAC_CR_TEN1;
+        DAC->CR &= ~DAC_CR_TSEL1;
+        DAC->CR |= static_cast<uint32_t>(source);
+        DAC->CR |= DAC_CR_TEN1;
     } else {
-        DAC->CR |= DAC_CR_TEN2;                          // Trigger enable
-        DAC->CR &= ~DAC_CR_TSEL2;                        // Clear trigger source
-        DAC->CR |= static_cast<uint32_t>(source) << 16;  // Set trigger source
+        DAC->CR &= ~DAC_CR_TEN2;
+        DAC->CR &= ~DAC_CR_TSEL2;
+        DAC->CR |= static_cast<uint32_t>(source) << 16;
+        DAC->CR |= DAC_CR_TEN2;
     }
 
     return true;
@@ -214,7 +245,7 @@ bool DACDriver::disableWaveGenerator(int channel) {
 }
 
 bool DACDriver::setWaveGeneratorMask(int channel, uint8_t bits) {
-    if (channel < 1 || channel > 2 || bits > 12)
+    if (channel < 1 || channel > 2 || bits < 1 || bits > 12)
         return false;
 
     if (channel == 1) {
@@ -239,7 +270,7 @@ bool DACDriver::centerWaveOutput(int channel, float voltage) {
     else
         bits = ((DAC->CR & DAC_CR_MAMP2) >> DAC_CR_MAMP2_Pos) + 1;
 
-    // Compute the wave aplitude
+    // Compute the wave amplitude
     float amplitude = V_DDA_VOLTAGE / 4095.0 * (powf(2, bits) - 1);
 
     // Set the appropriate voltage
