@@ -2449,6 +2449,8 @@ else ifeq ($(ARCH),cortexM0_stm32f0)
     arch/common/core/interrupts_cortexMx.cpp                 \
     arch/common/drivers/serial_stm32.cpp                     \
     arch/common/drivers/dac/dac.cpp                          \
+    arch/common/drivers/timers/basic_timer.cpp               \
+    arch/common/drivers/dma/dma.cpp                          \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
