@@ -70,15 +70,24 @@ public:
     /**
      * @brief Create a BasicTimer object.
      *
-     * @warning Note that this does not resets the timer configuration but
-     * automatically enables the timer peripheral clock.
+     * @warning Note that this does not resets the timer configuration.
      */
     explicit BasicTimerDriver(TIM_TypeDef *timer);
 
     /**
-     * @brief Disables the peripheral clock.
+     * @brief Ensures that peripheral clock gets disabled.
      */
     ~BasicTimerDriver();
+
+    /**
+     * @brief Disables the peripheral clock.
+     */
+    void clockOn();
+
+    /**
+     * @brief Enables the peripheral clock.
+     */
+    void clockOff();
 
     /**
      * @brief Resets the timer configuration to the default state.

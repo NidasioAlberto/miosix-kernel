@@ -24,3 +24,48 @@
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
+
+#include "dma.h"
+
+#include <util/clock_utils.h>
+
+namespace miosix {
+
+DMADriver::DMADriver(DMA_TypeDef *dma, DMA_Channel_TypeDef *channel)
+    : dma(dma), channel(channel) {}
+
+DMADriver::~DMADriver() { ClockUtils::disablePeripheralClock(dma); }
+
+void DMADriver::clockOn() { ClockUtils::enablePeripheralClock(dma); }
+
+void DMADriver::clockOff() { ClockUtils::disablePeripheralClock(dma); }
+
+void DMADriver::enable() { DMA1_Channel3->CCR |= DMA_CCR_EN; }
+
+void DMADriver::setPeripheralDataAddress(void *data) {
+    DMA1_Channel3->CPAR |= reinterpret_cast<uint32_t>(data);
+}
+
+void DMADriver::setMemoryDataAddress(void *data) {
+    DMA1_Channel3->CMAR |= reinterpret_cast<uint32_t>(data);
+}
+
+void DMADriver::setTransferSize(uint32_t size) { DMA1_Channel3->CNDTR = size; }
+
+void DMADriver::enableMemoryIncrement() { DMA1_Channel3->CCR |= DMA_CCR_MINC; }
+
+void DMADriver::setMemoryDataSize(DataSize size) {
+    DMA1_Channel3->CCR |= static_cast<uint32_t>(size) << DMA_CCR_MSIZE_Pos;
+}
+
+void DMADriver::setPeripheralDataSize(DataSize size) {
+    DMA1_Channel3->CCR |= static_cast<uint32_t>(size) << DMA_CCR_PSIZE_Pos;
+}
+
+void DMADriver::setMemoryToPeripheralDirection() {
+    DMA1_Channel3->CCR |= DMA_CCR_DIR;
+}
+
+void DMADriver::enableCircularMode() { DMA1_Channel3->CCR |= DMA_CCR_CIRC; }
+
+}  // namespace miosix

@@ -30,6 +30,7 @@
 #include <interfaces/gpio.h>
 #include <kernel/kernel.h>
 #include <math.h>
+#include <util/clock_utils.h>
 
 #ifndef V_DDA_VOLTAGE
 #error "V_DDA_VOLTAGE not defined. Pease specify the analog supply voltage."
@@ -50,22 +51,12 @@ bool DACDriver::enableChannel(int channel) {
     if (channel < 1 || channel > 2)
         return false;
 
-    {
-        // Modify the gpio and clock register in a critical section just in case
-        // another thread is doing the same
-        FastInterruptDisableLock l;
+    if (channel == 1)
+        ch1::mode(Mode::INPUT_ANALOG);
+    else
+        ch2::mode(Mode::INPUT_ANALOG);
 
-        if (channel == 1)
-            ch1::mode(Mode::INPUT_ANALOG);
-        else
-            ch2::mode(Mode::INPUT_ANALOG);
-
-        // Enable the peripheral clock if not already done
-        if (!(RCC->APB1ENR & RCC_APB1ENR_DACEN)) {
-            RCC->APB1ENR |= RCC_APB1ENR_DACEN;
-            RCC_SYNC();
-        }
-    }
+    ClockUtils::enablePeripheralClock(DAC);
 
     // Enable the channel
     DAC->CR |= channel == 1 ? DAC_CR_EN1 : DAC_CR_EN2;
@@ -81,17 +72,8 @@ bool DACDriver::disableChannel(int channel) {
     // Check AN4899 chapter 7
 
     // Disable the DAC clock if both channels are disabled
-    if (DAC->CR & (channel == 1 ? DAC_CR_EN2 : DAC_CR_EN1)) {
-        // Modify the gpio and clock register in a critical section just in case
-        // another thread is doing the same
-        FastInterruptDisableLock l;
-
-        // Disable the peripheral clock
-        if (!(RCC->APB1ENR & RCC_APB1ENR_DACEN)) {
-            RCC->APB1ENR &= ~RCC_APB1ENR_DACEN;
-            RCC_SYNC();
-        }
-    }
+    if (DAC->CR & (channel == 1 ? DAC_CR_EN2 : DAC_CR_EN1))
+        ClockUtils::disablePeripheralClock(DAC);
 
     return true;
 }
@@ -275,6 +257,30 @@ bool DACDriver::centerWaveOutput(int channel, float voltage) {
 
     // Set the appropriate voltage
     setChannel(channel, voltage - amplitude / 2);
+
+    return true;
+}
+
+bool DACDriver::enableDMA(int channel) {
+    if (channel < 1 || channel > 2)
+        return false;
+
+    if (channel == 1)
+        DAC->CR |= DAC_CR_DMAEN1;
+    else
+        DAC->CR |= DAC_CR_DMAEN2;
+
+    return true;
+}
+
+bool DACDriver::disableDMA(int channel) {
+    if (channel < 1 || channel > 2)
+        return false;
+
+    if (channel == 1)
+        DAC->CR &= ~DAC_CR_DMAEN1;
+    else
+        DAC->CR &= ~DAC_CR_DMAEN2;
 
     return true;
 }

@@ -215,6 +215,25 @@ public:
      * @return True if the output buffer was disabled.
      */
     bool centerWaveOutput(int channel, float voltage);
+
+    /**
+     * @brief Enables DMA on the specified channel.
+     *
+     * When the DMA is enabled, a new DMA request is generated when an external
+     * trigger (but not a software trigger) occurs.
+     *
+     * @param channel Channel number, must be either 1 or 2.
+     * @return True if the output buffer was enabled.
+     */
+    bool enableDMA(int channel);
+
+    /**
+     * @brief Disables DMA on the specified channel.
+     *
+     * @param channel Channel number, must be either 1 or 2.
+     * @return True if the output buffer was enabled.
+     */
+    bool disableDMA(int channel);
 };
 
 }  // namespace miosix

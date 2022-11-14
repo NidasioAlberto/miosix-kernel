@@ -27,6 +27,8 @@
 
 #pragma once
 
+#include <interfaces/arch_registers.h>
+
 namespace miosix {
 
 /**
@@ -37,6 +39,52 @@ namespace miosix {
  * peripheral request signals are ored together. This means that only one
  * request per channel must be enabled.
  */
-class DMADriver {};
+class DMADriver {
+public:
+    enum class DataSize : uint32_t {
+        BITS_8 = 0,
+        BITS_16 = 1,
+        BITS_32 = 2,
+    };
+
+    explicit DMADriver(DMA_TypeDef *dma, DMA_Channel_TypeDef *channel);
+
+    /**
+     * @brief Ensures that peripheral clock gets disabled.
+     */
+    ~DMADriver();
+
+    /**
+     * @brief Disables the peripheral clock.
+     */
+    void clockOn();
+
+    /**
+     * @brief Enables the peripheral clock.
+     */
+    void clockOff();
+
+    void enable();
+
+    void setPeripheralDataAddress(void *data);
+
+    void setMemoryDataAddress(void *data);
+
+    void setTransferSize(uint32_t size);
+
+    void enableMemoryIncrement();
+
+    void setMemoryDataSize(DataSize size);
+
+    void setPeripheralDataSize(DataSize size);
+
+    void setMemoryToPeripheralDirection();
+
+    void enableCircularMode();
+
+private:
+    DMA_TypeDef *dma;
+    DMA_Channel_TypeDef *channel;
+};
 
 }  // namespace miosix

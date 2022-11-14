@@ -2,14 +2,15 @@
 
 namespace miosix {
 
-BasicTimerDriver::BasicTimerDriver(TIM_TypeDef *timer) {
-    this->timer = timer;
-    ClockUtils::enablePeripheralClock(timer);
-}
+BasicTimerDriver::BasicTimerDriver(TIM_TypeDef *timer) : timer(timer) {}
 
 BasicTimerDriver::~BasicTimerDriver() {
     ClockUtils::disablePeripheralClock(timer);
 }
+
+void BasicTimerDriver::clockOn() { ClockUtils::enablePeripheralClock(timer); }
+
+void BasicTimerDriver::clockOff() { ClockUtils::disablePeripheralClock(timer); }
 
 void BasicTimerDriver::reset() {
     timer->CR1 = 0;
@@ -22,7 +23,10 @@ void BasicTimerDriver::reset() {
 
 void BasicTimerDriver::enable() { timer->CR1 |= TIM_CR1_CEN; }
 
-void BasicTimerDriver::disable() { timer->CR1 &= ~TIM_CR1_CEN; }
+void BasicTimerDriver::disable() {
+    timer->CR1 &= ~TIM_CR1_CEN;
+    ClockUtils::disablePeripheralClock(timer);
+}
 
 uint16_t BasicTimerDriver::readPrescaler() { return timer->PSC; }
 
