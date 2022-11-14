@@ -28,7 +28,7 @@
 #pragma once
 
 #include <interfaces/arch_registers.h>
-#include <util/clock_utils.h>
+#include <util/timer_utils.h>
 
 namespace miosix {
 
@@ -66,9 +66,12 @@ namespace miosix {
  * - The update interrupt flag is set
  */
 class BasicTimerDriver {
+public:
     /**
-     * @brief Create a BasicTimer object. Note that this does not resets the
-     * timer configuration but automatically enables the timer peripheral clock.
+     * @brief Create a BasicTimer object.
+     *
+     * @warning Note that this does not resets the timer configuration but
+     * automatically enables the timer peripheral clock.
      */
     explicit BasicTimerDriver(TIM_TypeDef *timer);
 
@@ -92,31 +95,47 @@ class BasicTimerDriver {
      * - Counter and prescaler set to 0
      * - Auto reload register set to 65535 (2^16-1)
      */
-    virtual void reset();
+    void reset();
 
-    virtual void enable();
+    void enable();
 
-    virtual void disable();
+    void disable();
+
+    uint16_t readPrescaler();
+
+    /**
+     * @brief Updated the prescaler value.
+     *
+     * Keep in mind that the new prescaler value is taken into account at
+     * the next update event is buffering is enabled. If you need to change it
+     * immediately you need to call generateUpdate() and make sure that UEV
+     * generation is enabled (which is by default).
+     */
+    void setPrescaler(uint16_t prescalerValue);
+
+    int getClockFrequency();
+
+    /**
+     * @brief Allows to set directly the frequency of the timer's clock.
+     *
+     * This changes only the prescaler.
+     *
+     * @param frequency Target frequency for the timer's clock.
+     */
+    void setClockFrequency(int frequency);
+
+    uint16_t readAutoReloadRegister();
+
+    void setAutoReloadRegister(uint16_t autoReloadValue);
+
+    /**
+     * @brief Allows to select the event that triggers the TRGO (trigger
+     * output).
+     */
+    void setMasterMode(TimerUtils::MasterMode mode);
 
 protected:
     TIM_TypeDef *timer;
 };
-
-inline BasicTimerDriver::~BasicTimerDriver() {
-    ClockUtils::disablePeripheralClock(timer);
-}
-
-inline void BasicTimerDriver::reset() {
-    timer->CR1 = 0;
-    timer->CR2 = 0;
-    timer->DIER = 0;
-    timer->CNT = 0;
-    timer->PSC = 0;
-    timer->ARR = 0xFFFF;
-}
-
-inline void BasicTimerDriver::enable() { timer->CR1 |= TIM_CR1_CEN; }
-
-inline void BasicTimerDriver::disable() { timer->CR1 &= ~TIM_CR1_CEN; }
 
 }  // namespace miosix

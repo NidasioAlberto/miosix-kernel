@@ -32,6 +32,9 @@
 
 namespace miosix {
 
+/**
+ * @brief Utilities for the Cortex clocks.
+ */
 namespace ClockUtils {
 
 /**
@@ -88,12 +91,12 @@ inline uint32_t ClockUtils::getAPBFrequency(APB bus) {
 #endif
 
 #ifdef _ARCH_CORTEXM0_STM32F0
-        if (RCC->CFGR & RCC_CFGR_PPRE) {
+        if (RCC->CFGR & RCC_CFGR_PPRE)
 #else
-        if (RCC->CFGR & RCC_CFGR_PPRE1_2) {
+        if (RCC->CFGR & RCC_CFGR_PPRE1_2)
 #endif
             inputFrequency /= 1 << ((RCC->CFGR >> ppre1) & 0x3);
-        }
+
 #ifndef _ARCH_CORTEXM0_STM32F0
     } else {
         // The position of the PPRE2 bit in RCC->CFGR is different in some stm32
