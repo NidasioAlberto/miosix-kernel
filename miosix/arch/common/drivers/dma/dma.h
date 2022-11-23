@@ -28,63 +28,92 @@
 #pragma once
 
 #include <interfaces/arch_registers.h>
+#include <kernel/sync.h>
+
+#include <map>
 
 namespace miosix {
 
-/**
- * @brief Direct Memory Access Controller Driver.
- *
- * The peripheral DMA requests can be enabled by programming the DMA control bit
- * in the registers of the corresponding peripheral. On each channel, multiple
- * peripheral request signals are ored together. This means that only one
- * request per channel must be enabled.
- */
+enum class DMAChannelId {
+    DMA1_CH1 = 0,
+    DMA1_CH2,
+    DMA1_CH3,
+    DMA1_CH4,
+    DMA1_CH5,
+    DMA1_CH6,
+    DMA1_CH7,
+};
+
+struct DMATransaction {
+    enum class Direction : uint16_t {
+        MEM_TO_MEM = DMA_CCR_MEM2MEM,
+        MEM_TO_PER = DMA_CCR_DIR,
+        PER_TO_MEM = 0,
+    };
+    enum class Priority : uint16_t {
+        VERY_HIGH = DMA_CCR_PL,
+        HIGH = DMA_CCR_PL_1,
+        MEDIOUM = DMA_CCR_PL_0,
+        LOW = 0,
+    };
+    enum class DataSize : uint8_t { BITS_8, BITS_16, BIT_32 };
+
+    Direction direction = Direction::MEM_TO_MEM;
+    Priority priority = Priority::LOW;
+    DataSize sourceSize = DataSize::BIT_32;
+    DataSize destinationSize = DataSize::BIT_32;
+    void* sourceAddress = nullptr;
+    void* destinationAddress = nullptr;
+    uint16_t numberOfDataItems = 0;
+    bool sourceIncrement = false;
+    bool destinationIncrement = false;
+    bool circularMode = false;
+};
+
+// Forward declaration
+class DMAChannel;
+
 class DMADriver {
 public:
-    enum class DataSize : uint32_t {
-        BITS_8 = 0,
-        BITS_16 = 1,
-        BITS_32 = 2,
-    };
+    static DMADriver& instance();
 
-    explicit DMADriver(DMA_TypeDef *dma, DMA_Channel_TypeDef *channel);
+    bool tryChannel(DMAChannelId id);
 
-    /**
-     * @brief Ensures that peripheral clock gets disabled.
-     */
-    ~DMADriver();
+    DMAChannel* acquireChannel(DMAChannelId id);
 
-    /**
-     * @brief Disables the peripheral clock.
-     */
-    void clockOn();
+    void releaseChannel(DMAChannelId id);
 
-    /**
-     * @brief Enables the peripheral clock.
-     */
-    void clockOff();
+private:
+    DMADriver();
+
+    FastMutex mutex;
+    ConditionVariable cv;
+    std::map<DMAChannelId, DMAChannel*> channels;
+
+public:
+    DMADriver(const DMADriver&) = delete;
+    DMADriver& operator=(const DMADriver&) = delete;
+};
+
+class DMAChannel {
+    friend DMADriver;
+
+public:
+    void setup(DMATransaction transaction);
 
     void enable();
 
-    void setPeripheralDataAddress(void *data);
-
-    void setMemoryDataAddress(void *data);
-
-    void setTransferSize(uint32_t size);
-
-    void enableMemoryIncrement();
-
-    void setMemoryDataSize(DataSize size);
-
-    void setPeripheralDataSize(DataSize size);
-
-    void setMemoryToPeripheralDirection();
-
-    void enableCircularMode();
+    void disable();
 
 private:
-    DMA_TypeDef *dma;
-    DMA_Channel_TypeDef *channel;
+    DMAChannel(DMAChannelId id);
+
+    DMAChannelId id;
+    DMA_Channel_TypeDef* registers;
+
+public:
+    DMAChannel(const DMAChannel&) = delete;
+    DMAChannel& operator=(const DMAChannel&) = delete;
 };
 
 }  // namespace miosix

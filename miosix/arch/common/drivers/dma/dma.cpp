@@ -31,41 +31,104 @@
 
 namespace miosix {
 
-DMADriver::DMADriver(DMA_TypeDef *dma, DMA_Channel_TypeDef *channel)
-    : dma(dma), channel(channel) {}
-
-DMADriver::~DMADriver() { ClockUtils::disablePeripheralClock(dma); }
-
-void DMADriver::clockOn() { ClockUtils::enablePeripheralClock(dma); }
-
-void DMADriver::clockOff() { ClockUtils::disablePeripheralClock(dma); }
-
-void DMADriver::enable() { DMA1_Channel3->CCR |= DMA_CCR_EN; }
-
-void DMADriver::setPeripheralDataAddress(void *data) {
-    DMA1_Channel3->CPAR |= reinterpret_cast<uint32_t>(data);
+DMADriver& DMADriver::instance() {
+    static DMADriver instance;
+    return instance;
 }
 
-void DMADriver::setMemoryDataAddress(void *data) {
-    DMA1_Channel3->CMAR |= reinterpret_cast<uint32_t>(data);
+bool DMADriver::tryChannel(DMAChannelId id) {
+    Lock<FastMutex> l(mutex);
+
+    // Return true, meaning that the channel is free, only if it is not yet
+    // allocated
+    return channels.count(id) == 0;
 }
 
-void DMADriver::setTransferSize(uint32_t size) { DMA1_Channel3->CNDTR = size; }
+DMAChannel* DMADriver::acquireChannel(DMAChannelId id) {
+    Lock<FastMutex> l(mutex);
 
-void DMADriver::enableMemoryIncrement() { DMA1_Channel3->CCR |= DMA_CCR_MINC; }
+    // Wait until the channel is free
+    while (channels.count(id) != 0)
+        cv.wait(l);
 
-void DMADriver::setMemoryDataSize(DataSize size) {
-    DMA1_Channel3->CCR |= static_cast<uint32_t>(size) << DMA_CCR_MSIZE_Pos;
+    // Enable the clock if not already done
+    if (channels.size() == 0)
+        ClockUtils::enablePeripheralClock(DMA1);
+
+    return channels[id] = new DMAChannel(id);
 }
 
-void DMADriver::setPeripheralDataSize(DataSize size) {
-    DMA1_Channel3->CCR |= static_cast<uint32_t>(size) << DMA_CCR_PSIZE_Pos;
+void DMADriver::releaseChannel(DMAChannelId id) {
+    Lock<FastMutex> l(mutex);
+
+    if (channels.count(id) != 0) {
+        delete channels[id];
+        channels.erase(id);
+    }
+
+    // Disable the clock if there are no more channels
+    if (channels.size() == 0)
+        ClockUtils::enablePeripheralClock(DMA1);
 }
 
-void DMADriver::setMemoryToPeripheralDirection() {
-    DMA1_Channel3->CCR |= DMA_CCR_DIR;
+DMADriver::DMADriver() {}
+
+void DMAChannel::setup(DMATransaction transaction) {
+    // Reset the configuration
+    registers->CCR = 0;
+
+    registers->CCR |= static_cast<uint32_t>(transaction.direction);
+    registers->CCR |= static_cast<uint32_t>(transaction.priority);
+    if (transaction.circularMode)
+        registers->CCR |= DMA_CCR_CIRC;
+    registers->CNDTR = transaction.numberOfDataItems;
+
+    if (transaction.direction == DMATransaction::Direction::MEM_TO_PER) {
+        // In memory to peripheral mode, the source address is the memory
+        // address
+
+        registers->CCR |= static_cast<uint32_t>(transaction.sourceSize)
+                          << DMA_CCR_MSIZE_Pos;
+        registers->CCR |= static_cast<uint32_t>(transaction.destinationSize)
+                          << DMA_CCR_PSIZE_Pos;
+
+        if (transaction.sourceIncrement)
+            registers->CCR |= DMA_CCR_MINC;
+        if (transaction.destinationIncrement)
+            registers->CCR |= DMA_CCR_PINC;
+
+        registers->CMAR = reinterpret_cast<uint32_t>(transaction.sourceAddress);
+        registers->CPAR =
+            reinterpret_cast<uint32_t>(transaction.destinationAddress);
+
+    } else {
+        // In peripheral to memory or memory to memory mode, the source address
+        // goes into the peripheral address register
+
+        registers->CCR |= static_cast<uint32_t>(transaction.sourceSize)
+                          << DMA_CCR_PSIZE_Pos;
+        registers->CCR |= static_cast<uint32_t>(transaction.destinationSize)
+                          << DMA_CCR_MSIZE_Pos;
+
+        if (transaction.sourceIncrement)
+            registers->CCR |= DMA_CCR_PINC;
+        if (transaction.destinationIncrement)
+            registers->CCR |= DMA_CCR_MINC;
+
+        registers->CPAR = reinterpret_cast<uint32_t>(transaction.sourceAddress);
+        registers->CMAR =
+            reinterpret_cast<uint32_t>(transaction.destinationAddress);
+    }
 }
 
-void DMADriver::enableCircularMode() { DMA1_Channel3->CCR |= DMA_CCR_CIRC; }
+void DMAChannel::enable() { registers->CCR |= DMA_CCR_EN; }
+
+void DMAChannel::disable() { registers->CCR &= ~DMA_CCR_EN; }
+
+DMAChannel::DMAChannel(DMAChannelId id) {
+    // Get the channel registers base address
+    registers = reinterpret_cast<DMA_Channel_TypeDef*>(
+        DMA1_BASE + 0x08 + 0x14 * static_cast<int>(id));
+}
 
 }  // namespace miosix
