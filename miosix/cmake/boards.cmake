@@ -16,6 +16,7 @@ set(BOARDS
     stm32f103ze_redbull_v2
     stm32f103ze_stm3210e-eval
     stm32f205_generic
+    stm32f205rc_signal_generator
     stm32f205rc_skyward_stormtrooper
     stm32f205rg_sony-newman
     stm32f207ig_stm3220g-eval

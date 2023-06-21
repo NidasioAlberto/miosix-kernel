@@ -84,6 +84,8 @@ elseif(${OPT_BOARD} STREQUAL stm32f205_generic)
     set(ARCH cortexM3_stm32f2)
 elseif(${OPT_BOARD} STREQUAL stm32f205rc_skyward_stormtrooper)
     set(ARCH cortexM3_stm32f2)
+elseif(${OPT_BOARD} STREQUAL stm32f205rc_signal_generator)
+    set(ARCH cortexM3_stm32f2)
 elseif(${OPT_BOARD} STREQUAL stm32f205rg_sony-newman)
     set(ARCH cortexM3_stm32f2)
 elseif(${OPT_BOARD} STREQUAL stm32f207ig_stm3220g-eval)
@@ -947,6 +949,44 @@ elseif(${ARCH} STREQUAL cortexM3_stm32f2)
         ## systems with the binary or hex file repectively.
         ## If a command is not specified, the build system will use st-flash if found
         set(PROGRAM_CMDLINE "stm32flash -w $hex -v /dev/ttyUSB0")
+
+    ##-------------------------------------------------------------------------
+    ## BOARD: stm32f205rc_signal_generator
+    ##
+    elseif(${OPT_BOARD} STREQUAL stm32f205rc_signal_generator)
+
+        ## Base directory with header files for this board
+        set(BOARD_INC arch/cortexM3_stm32f2/stm32f205rc_signal_generator)
+
+        ## Select linker script and boot file
+        ## Their path must be relative to the miosix directory.
+        set(BOOT_FILE ${KPATH}/${BOARD_INC}/core/stage_1_boot.cpp)
+        set(LINKER_SCRIPT ${KPATH}/${BOARD_INC}/stm32_256k+128k_ram.ld)
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        set(ARCH_SRC
+            ${KPATH}/arch/common/drivers/sd_stm32f2_f4_f7.cpp
+            ${KPATH}/arch/common/drivers/stm32f2_f4_i2c.cpp
+            ${KPATH}/arch/common/drivers/servo_stm32.cpp
+            ${KPATH}/${BOARD_INC}/interfaces-impl/delays.cpp
+            ${KPATH}/${BOARD_INC}/interfaces-impl/bsp.cpp
+        )
+
+        ## Add a #define to allow querying board name
+        list(APPEND CFLAGS_BASE -D_BOARD_STM32F205RC_SIGNAL_GENERATOR)
+        list(APPEND CXXFLAGS_BASE -D_BOARD_STM32F205RC_SIGNAL_GENERATOR)
+
+        ## Clock frequency
+        set(CLOCK_FREQ -DHSE_VALUE=25000000 -DSYSCLK_FREQ_120MHz=120000000)
+
+        ## Specify a custom flash command
+        ## This is the program that is invoked when the flash flag (-f or --flash)
+        ## is used with the Miosix Build System.
+        ## Use $binary or $hex as placeolders, they will be replaced by the build
+        ## systems with the binary or hex file repectively.
+        ## If a command is not specified, the build system will use st-flash if found
+        # set(PROGRAM_CMDLINE "here your custom flash command")
 
     ##-------------------------------------------------------------------------
     ## BOARD: stm32f205rc_skyward_stormtrooper
