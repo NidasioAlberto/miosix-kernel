@@ -535,8 +535,7 @@ elseif(${ARCH} STREQUAL cortexM3_stm32f1)
         ## Use $binary or $hex as placeolders, they will be replaced by the build
         ## systems with the binary or hex file repectively.
         ## If a command is not specified, the build system will use st-flash if found
-        #set(PROGRAM_CMDLINE "sudo vsprog -cstm32_vl -ms -I $binary -oe -owf -ovf")
-        set(PROGRAM_CMDLINE "stm32flash -w $hex -v /dev/ttyUSB1")
+        # set(PROGRAM_CMDLINE "here your custom flash command")
 
     ##-------------------------------------------------------------------------
     ## BOARD: stm32f100rc_solertegiard
