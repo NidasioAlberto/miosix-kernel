@@ -59,6 +59,9 @@ const bool defaultSerialFlowctrl=false;
 ///redirected throug USART1, as usual.
 //#define STDOUT_REDIRECTED_TO_DCC
 
+/// Analog supply voltage for ADC, DAC, Reset blocks, RCs and PLL
+#define V_DDA_VOLTAGE 3.3f
+
 /**
  * \}
  */
